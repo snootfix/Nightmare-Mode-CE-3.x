@@ -10,6 +10,9 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 
+/**
+ * Common render behavior of entities
+ */
 @Mixin(EntityRenderer.class)
 public abstract class EntityRendererMixin implements EntityAccessor {
     @Shadow private Minecraft mc;
@@ -19,7 +22,14 @@ public abstract class EntityRendererMixin implements EntityAccessor {
     @Shadow float fogColorBlue;
     @Shadow float fogColorGreen;
 
-    // MEA CODE. credit to Pot_tx
+    /**
+     * Smooth camera movement in web
+     * // MEA CODE. credit to Pot_tx
+     *
+     * @param {Args} args - Main method arguments
+     *
+     * @return {void}
+     */
     @ModifyArgs(method = "updateCameraAndRender(F)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/src/EntityClientPlayerMP;setAngles(FF)V", ordinal = 0))
     private void slowSmoothCameraInWeb(Args args) {
         if (((EntityAccessor)this.mc.thePlayer).getIsInWeb()) {
@@ -28,6 +38,14 @@ public abstract class EntityRendererMixin implements EntityAccessor {
         }
     }
 
+    /**
+     * Slowed camera movement in web
+     * // MEA CODE. credit to Pot_tx
+     *
+     * @param {Args} args - Main method arguments
+     *
+     * @return {void}
+     */
     @ModifyArgs(method = "updateCameraAndRender(F)V", at = @At(value = "INVOKE", target = "Lnet/minecraft/src/EntityClientPlayerMP;setAngles(FF)V", ordinal = 1))
     private void slowCameraInWeb(Args args) {
         if (((EntityAccessor)this.mc.thePlayer).getIsInWeb()) {
@@ -36,6 +54,15 @@ public abstract class EntityRendererMixin implements EntityAccessor {
         }
     }
 
+    /**
+     * Remove night vision red tint
+     *
+     * @param {WorldClient} world - The world
+     * @param {float} fPartialTicks - The partial ticks
+     * @param {CallbackInfo} ci - Main method callback info
+     *
+     * @return {void}
+     */
     @Inject(method = "modUpdateLightmapOverworld", at = @At(value = "INVOKE", target = "Lnet/minecraft/src/TextureUtil;uploadTexture(I[III)V"))
     private void removeNightVisionRed(WorldClient world, float fPartialTicks, CallbackInfo ci){
         for (int iTempMapIndex = 0; iTempMapIndex < 256; ++iTempMapIndex) {
@@ -52,22 +79,45 @@ public abstract class EntityRendererMixin implements EntityAccessor {
         }
     }
 
+    /**
+     * Prevent crash when potion is null on duration getter
+     *
+     * @param {PotionEffect} potion - The potion effect
+     *
+     * @return {int} - The duration of the potion effect
+     */
     @Redirect(method = "getNightVisionBrightness", at = @At(value = "INVOKE", target = "Lnet/minecraft/src/PotionEffect;getDuration()I"))
     private int noCrashGetDuration(PotionEffect potion){
         if(potion == null){
             return 200;
         }
+
         return potion.getDuration();
     }
+
+    /**
+     * Prevent crash when potion is null on ambient getter
+     *
+     * @param {PotionEffect} potion - The potion effect
+     *
+     * @return {boolean} - The ambient status of the potion effect
+     */
     @Redirect(method = "getNightVisionBrightness", at = @At(value = "INVOKE", target = "Lnet/minecraft/src/PotionEffect;getIsAmbient()Z"))
     private boolean noCrashGetIsAmbient(PotionEffect potion){
         if(potion == null){
             return true;
         }
+
         return potion.getIsAmbient();
     }
 
-
+    /**
+     * Override fog colors during night vision (eg.: end fog, blood moon fog)
+     *
+     * @param {float} par1 - TODO: ???
+     *
+     * @return {void}
+     */
     @Inject(method = "updateFogColor", at = @At(value = "INVOKE", target = "Lorg/lwjgl/opengl/GL11;glClearColor(FFFF)V"))
     private void manageEndFogWithNightVision(float par1, CallbackInfo ci){
         if (this.mc.thePlayer.dimension == 1) {

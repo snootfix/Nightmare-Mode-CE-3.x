@@ -11,16 +11,34 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+/**
+ * Handles the ender dragon entity
+ */
 @Mixin(EntityDragon.class)
 public abstract class EntityDragonMixin extends EntityLiving implements IBossDisplayData, IEntityMultiPart, IMob {
+    /**
+     * Undo the end portal creation,
+     * handled on second dragon kill
+     *
+     * @param {int} par1 - The x coord
+     * @param {int} par2 - The z coord
+     */
     @Shadow
     private void createEnderPortal(int par1, int par2) {
+        // noop
     }
 
     @Shadow private Entity target;
 
     @Unique long attackTimer;
 
+    /**
+     * Constructor
+     *
+     * @param {World} par1World - The world to create the dragon in
+     *
+     * @return {EntityDragonMixin} - The instance
+     */
     public EntityDragonMixin(World par1World) {
         super(par1World);
     }
@@ -37,6 +55,15 @@ public abstract class EntityDragonMixin extends EntityLiving implements IBossDis
 //    }
     // converts all endermen to shadow zombies
 
+    /**
+     * Only spawn the end portal on the second dragon kill
+     *
+     * @param {EntityDragon} instance - The dragon instance
+     * @param {int} var10 - The x coord
+     * @param {int} var12 - The z coord
+     *
+     * @return {void}
+     */
     @Redirect(method = "onDeathUpdate", at = @At(value = "INVOKE", target = "Lnet/minecraft/src/EntityDragon;createEnderPortal(II)V"))
     private void onlySpawnOnSecondDragonKill(EntityDragon instance, int var10, int var12) {
         if (BlockEndPortal.bossDefeated || this.worldObj.getDifficulty() != Difficulties.HOSTILE) {
@@ -56,6 +83,13 @@ public abstract class EntityDragonMixin extends EntityLiving implements IBossDis
         }
     }
 
+    /**
+     * Battle mechanics
+     *
+     * @param {CallbackInfo} ci - The cb for the main method
+     *
+     * @return {void}
+     */
     @Inject(method = "onLivingUpdate", at = @At("TAIL"))
     private void attackPlayer(CallbackInfo ci){
         attackTimer++;

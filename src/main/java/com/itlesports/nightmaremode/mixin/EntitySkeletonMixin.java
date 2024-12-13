@@ -17,6 +17,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
+//TODO: annotate
 @Mixin(EntitySkeleton.class)
 public abstract class EntitySkeletonMixin extends EntityMob implements EntityAccessor, EntitySlimeInvoker{
     @Shadow public abstract void setSkeletonType(int par1);

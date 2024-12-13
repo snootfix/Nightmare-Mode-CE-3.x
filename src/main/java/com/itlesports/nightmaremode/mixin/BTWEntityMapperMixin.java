@@ -7,6 +7,9 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+/**
+ * Injects the NM entity mappings into the BTW entity mapper
+ */
 @Mixin(BTWEntityMapper.class)
 public class BTWEntityMapperMixin {
     @Inject(method = "createModEntityMappings", at = @At("TAIL"), remap = false)

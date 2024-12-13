@@ -7,6 +7,9 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+/**
+ * Inject NM mob spawning into biomes
+ */
 @Mixin(BiomeGenBase.class)
 public class BiomeGenBaseMixin {
     @Inject(method = "<init>", at = @At("TAIL"))

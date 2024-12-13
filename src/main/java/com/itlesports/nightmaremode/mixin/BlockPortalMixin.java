@@ -14,6 +14,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Random;
 
+/**
+ * TODO: copied over code from EntityPlayerMPMixin, why is it here TOO?
+ */
 @Mixin(BlockPortal.class)
 public class BlockPortalMixin{
     // this code is slightly less awful than before, but still pretty bad

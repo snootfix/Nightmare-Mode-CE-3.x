@@ -8,13 +8,29 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+/**
+ * Handles the end biome world gen
+ */
 @Mixin(BiomeEndDecorator.class)
-
 public abstract class BiomeEndDecoratorMixin extends BiomeDecorator{
+    /**
+     * Constructor
+     *
+     * @param {BiomeGenBase} par1BiomeGenBase - The biome to decorate
+     *
+     * @return {BiomeEndDecoratorMixin} - The instance
+     */
     public BiomeEndDecoratorMixin(BiomeGenBase par1BiomeGenBase) {
         super(par1BiomeGenBase);
     }
 
+    /**
+     * Spawns an additional dragon on nightmare difficulty
+     *
+     * @param {CallbackInfo} ci - The cb for the main method
+     *
+     * @return {void}
+     */
     @Inject(method="decorate", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/src/World;spawnEntityInWorld(Lnet/minecraft/src/Entity;)Z",
             shift = At.Shift.AFTER))

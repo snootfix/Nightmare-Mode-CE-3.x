@@ -15,22 +15,98 @@ import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import java.util.Iterator;
 import java.util.List;
 
+/**
+ * NM Squid entity manager
+ */
 @Mixin(BTWSquidEntity.class)
 public abstract class BTWSquidEntityMixin extends EntityWaterMob{
     @Shadow(remap = false) private int headCrabDamageCounter;
     @Shadow(remap = false) private int tentacleAttackCooldownTimer;
     @Unique int squidOnHeadTimer = 0;
 
+    /**
+     * Constructor
+     *
+     * @param {World} par1World - The world
+     *
+     * @return {BTWSquidEntity}
+     */
     public BTWSquidEntityMixin(World par1World) {
         super(par1World);
     }
 
+    /**
+     * Increases the squid's range during blood moons
+     *
+     * @param {CallbackInfo} ci - The cb for the main method
+     *
+     * @return {void}
+     */
+    @Inject(method = "applyEntityAttributes", at = @At("TAIL"))
+    private void increaseSquidRangeDuringBloodMoon(CallbackInfo ci){
+        if(NightmareUtils.getIsBloodMoon()){
+            this.getEntityAttribute(SharedMonsterAttributes.followRange).setAttribute(20d);
+        }
+    }
+
+    /**
+     * Mob health scaling
+     *
+     * @param {double} d - The squid's health
+     *
+     * @return {double} - The modified squid health
+     */
+    @ModifyArg(method = "applyEntityAttributes", at = @At(value = "INVOKE", target = "Lnet/minecraft/src/AttributeInstance;setAttribute(D)V"))
+    private double modifySquidHP(double d) {
+        if (this.worldObj.getDifficulty() == Difficulties.HOSTILE) {
+            // pre nether 18, hardmode 24, post wither 36, post dragon 48
+            return NightmareUtils.getWorldProgress(this.worldObj) > 0 ? 12*(NightmareUtils.getWorldProgress(this.worldObj)+1) : 18;
+        }
+        return d;
+    }
+
+    /**
+     * Allow seeing through walls
+     *
+     * @param {BTWSquidEntity} instance - The squid instance
+     * @param {Entity} entity - The entity to check
+     *
+     * @return {boolean} - Whether the squid can see the entity(?)
+     */
+    @Redirect(method = "findClosestValidAttackTargetWithinRange", at = @At(value = "INVOKE", target = "Lbtw/entity/mob/BTWSquidEntity;canEntityBeSeen(Lnet/minecraft/src/Entity;)Z"))
+    private boolean canSeeThroughObstacles(BTWSquidEntity instance, Entity entity){
+        return true;
+    }
+
+    /**
+     * Allow tentacles to attack even if beached
+     *
+     * @param {BTWSquidEntity} instance - The squid instance
+     *
+     * @return {boolean} - Whether the squid is in water
+     */
+    @Redirect(method = "updateEntityActionState", at = @At(value = "FIELD", target = "Lbtw/entity/mob/BTWSquidEntity;inWater:Z",ordinal = 0))
+    private boolean tentacleEvenIfBeached(BTWSquidEntity instance){
+        return true;
+    }
+
+    /**
+     * Teleports the attacked entity to the squid's position
+     *
+     * @param {CallbackInfo} ci - The cb for the main method
+     * @param {Vec3} tentacleTip - The tentacle tip's position
+     * @param {AxisAlignedBB} tipBox - The tip hitbox
+     * @param {List} potentialCollisionList - The list of potential collisions
+     * @param {Iterator} collisionIterator - The iterator for the collisions
+     * @param {EntityLivingBase} tempEntity - The entity to teleport
+     *
+     * @return {void}
+     */
     @Inject(method = "updateTentacleAttack",
             at = @At(value = "INVOKE",
                     target = "Lbtw/entity/mob/BTWSquidEntity;tentacleAttackFlingTarget(Lnet/minecraft/src/Entity;Z)V",
                     shift = At.Shift.AFTER),
             locals = LocalCapture.CAPTURE_FAILHARD)
-
     private void teleportPlayer(CallbackInfo ci, Vec3 tentacleTip, AxisAlignedBB tipBox, List potentialCollisionList, Iterator collisionIterator, EntityLivingBase tempEntity){
         tempEntity.setPositionAndUpdate(this.posX,this.posY-1,this.posZ);
         if (tempEntity instanceof EntityPlayer) {
@@ -39,35 +115,24 @@ public abstract class BTWSquidEntityMixin extends EntityWaterMob{
             this.worldObj.playSoundAtEntity(this,"mob.endermen.portal",1.0F,this.worldObj.rand.nextFloat() * 0.1F + 0.9F);
         }
     }
-    @ModifyConstant(method = "dropFewItems", constant = @Constant(intValue = 8))
-    private int increaseMysteriousGlandDropRate(int constant){return 2;}
-    // makes the random function roll a number between 0 and 2 instead of 0 and 8
 
-    @Inject(method = "dropFewItems", at = @At("TAIL"))
-    private void allowBloodOrbDrops(boolean bKilledByPlayer, int iLootingModifier, CallbackInfo ci){
-        int bloodOrbID = NightmareUtils.getIsBloodMoon() ? NMItems.bloodOrb.itemID : 0;
-        if (bloodOrbID > 0) {
-            int var4 = this.rand.nextInt(4)+2;
-            // 2 - 5
-            if (iLootingModifier > 0) {
-                var4 += this.rand.nextInt(iLootingModifier + 1);
-            }
-            for (int var5 = 0; var5 < var4; ++var5) {
-                this.dropItem(bloodOrbID, 1);
-            }
-        }
-    }
-
-    // adds a flat +1 to inc sac drops
-    @Inject(method = "dropFewItems", at = @At(value = "FIELD", target = "Lbtw/entity/mob/BTWSquidEntity;rand:Ljava/util/Random;",ordinal = 0))
-    private void dropMoreSacs(boolean bKilledByPlayer, int iLootingModifier, CallbackInfo ci){
-        this.entityDropItem(new ItemStack(Item.dyePowder, 1, 0), 0.0f);
-    }
+    /**
+     * TODO: ???
+     */
     @Redirect(method = "updateTentacleAttack",
             at = @At(value = "INVOKE",
                     target = "Lbtw/entity/mob/BTWSquidEntity;tentacleAttackFlingTarget(Lnet/minecraft/src/Entity;Z)V"))
-    private void doNothing(BTWSquidEntity instance, Entity iFXJ, boolean iFXK){}
+    private void doNothing(BTWSquidEntity instance, Entity iFXJ, boolean iFXK){
+        // noop
+    }
 
+    /**
+     * Deal headcrab damage faster
+     *
+     * @param {CallbackInfo} ci - The cb for the main method
+     *
+     * @return {void}
+     */
     @Inject(method = "updateHeadCrab",
             at = @At(value = "FIELD",
                     target = "Lbtw/entity/mob/BTWSquidEntity;headCrabDamageCounter:I",
@@ -79,19 +144,13 @@ public abstract class BTWSquidEntityMixin extends EntityWaterMob{
         }
     }
 
-    @ModifyArg(method = "checkForScrollDrop", at = @At(value = "INVOKE", target = "Ljava/util/Random;nextInt(I)I"))
-    private int reduceScrollDropChance(int bound){
-        return 100;
-    }
-
-    @Inject(method = "applyEntityAttributes", at = @At("TAIL"))
-    private void increaseSquidRangeDuringBloodMoon(CallbackInfo ci){
-        if(NightmareUtils.getIsBloodMoon()){
-            this.getEntityAttribute(SharedMonsterAttributes.followRange).setAttribute(20d);
-        }
-    }
-
-
+    /**
+     * Play sounds, apply effects, and increase the squid's headcrab timer
+     *
+     * @param {CallbackInfo} ci - The cb for the main method
+     *
+     * @return {void}
+     */
     @Inject(method = "updateHeadCrab",
             at = @At("HEAD"),remap = false)
     private void doScaryThingsOnHead(CallbackInfo ci) {
@@ -127,21 +186,82 @@ public abstract class BTWSquidEntityMixin extends EntityWaterMob{
         }
     }
 
-
-// sets the time until the squid starts dealing damage to n ticks
+    /**
+     * Override headcrab damage counter
+     *
+     * @param {CallbackInfo} ci - The cb for the main method
+     *
+     * @return {void}
+     */
     @Inject(method = "checkForHeadCrab", at = @At(value = "FIELD", target = "Lbtw/entity/mob/BTWSquidEntity;headCrabDamageCounter:I", shift = At.Shift.AFTER))
     private void firstHeadCrabInterval(CallbackInfo ci){
         this.headCrabDamageCounter = 15;
     }
 
-    @ModifyArg(method = "applyEntityAttributes", at = @At(value = "INVOKE", target = "Lnet/minecraft/src/AttributeInstance;setAttribute(D)V"))
-    private double modifySquidHP(double d) {
-        if (this.worldObj.getDifficulty() == Difficulties.HOSTILE) {
-            return NightmareUtils.getWorldProgress(this.worldObj) > 0 ? 12*(NightmareUtils.getWorldProgress(this.worldObj)+1) : 18;
-            // pre nether 18, hardmode 24, post wither 36, post dragon 48
-        }
-        return d;
+    /**
+     * Increases the mysterious gland drop rate by x 8 / 2
+     *
+     * @param {int} constant - The constant to modify
+     *
+     * @return {int} - The modified constant
+     */
+    @ModifyConstant(method = "dropFewItems", constant = @Constant(intValue = 8))
+    private int increaseMysteriousGlandDropRate(int constant){
+        return 2;
     }
+
+    /**
+     * Always drop a sac on death
+     *
+     * @param {boolean} bKilledByPlayer - Whether the squid was killed by a player
+     * @param {int} iLootingModifier - The looting modifier
+     * @param {CallbackInfo} ci - The cb for the main method
+     *
+     * @return {void}
+     */
+    @Inject(method = "dropFewItems", at = @At(value = "FIELD", target = "Lbtw/entity/mob/BTWSquidEntity;rand:Ljava/util/Random;",ordinal = 0))
+    private void dropMoreSacs(boolean bKilledByPlayer, int iLootingModifier, CallbackInfo ci){
+        this.entityDropItem(new ItemStack(Item.dyePowder, 1, 0), 0.0f);
+    }
+
+    /**
+     * Item drops on death
+     *
+     * @param {boolean} bKilledByPlayer - Whether the squid was killed by a player
+     * @param {int} iLootingModifier - The looting modifier
+     * @param {CallbackInfo} ci - The cb for the main method
+     *
+     * @return {void}
+     */
+    @Inject(method = "dropFewItems", at = @At("TAIL"))
+    private void allowBloodOrbDrops(boolean bKilledByPlayer, int iLootingModifier, CallbackInfo ci){
+        int bloodOrbID = NightmareUtils.getIsBloodMoon() ? NMItems.bloodOrb.itemID : 0;
+        if (bloodOrbID > 0) {
+            int var4 = this.rand.nextInt(4)+2;
+            // 2 - 5
+            if (iLootingModifier > 0) {
+                var4 += this.rand.nextInt(iLootingModifier + 1);
+            }
+            for (int var5 = 0; var5 < var4; ++var5) {
+                this.dropItem(bloodOrbID, 1);
+            }
+        }
+    }
+
+    /**
+     * Arcane scroll drop rate
+     *
+     * @param {int} bound - The bound to modify
+     *
+     * @return {int} - The modified bound
+     */
+    @ModifyArg(method = "checkForScrollDrop", at = @At(value = "INVOKE", target = "Ljava/util/Random;nextInt(I)I"))
+    private int reduceScrollDropChance(int bound){
+        return 100;
+    }
+
+    //TODO: annotate the code below
+
     // TENTACLES
     @Inject(method = "updateEntityActionState", at = @At("HEAD"))
     private void lowerTentacleCooldown(CallbackInfo ci) {
@@ -152,6 +272,7 @@ public abstract class BTWSquidEntityMixin extends EntityWaterMob{
             }
         }
     }
+
     @ModifyConstant(method = "launchTentacleAttackInDirection", constant = @Constant(intValue = 100),remap = false)
     private int lowerTentacleAttackCooldownTimer(int constant){
         if (this.worldObj.getDifficulty() == Difficulties.HOSTILE) {
@@ -222,24 +343,12 @@ public abstract class BTWSquidEntityMixin extends EntityWaterMob{
             return false;
         } else return this.worldObj.isDaytime();
     }
-
     @Redirect(method = "findClosestValidAttackTargetWithinRange", at = @At(value = "INVOKE", target = "Lnet/minecraft/src/EntityPlayer;getBrightness(F)F"))
     private float playerPermanentlyInDarknessAfterNether(EntityPlayer instance, float v){
         if(NightmareUtils.getWorldProgress(this.worldObj)>0 && this.worldObj.getDifficulty() == Difficulties.HOSTILE){
             return 0.01f;
         }
         return instance.getBrightness(1.0f);
-    }
-
-    @Redirect(method = "findClosestValidAttackTargetWithinRange", at = @At(value = "INVOKE", target = "Lbtw/entity/mob/BTWSquidEntity;canEntityBeSeen(Lnet/minecraft/src/Entity;)Z"))
-    private boolean canSeeThroughObstacles(BTWSquidEntity instance, Entity entity){
-        return true;
-    }
-
-    // making the squid launch tentacles even if it cannot see the player, even if its on land, even if the player is not in water
-    @Redirect(method = "updateEntityActionState", at = @At(value = "FIELD", target = "Lbtw/entity/mob/BTWSquidEntity;inWater:Z",ordinal = 0))
-    private boolean tentacleEvenIfBeached(BTWSquidEntity instance){
-        return true;
     }
 
     @Redirect(method = "updateEntityActionState", at = @At(value = "INVOKE", target = "Lbtw/entity/mob/BTWSquidEntity;attemptTentacleAttackOnTarget()V"))

@@ -12,6 +12,9 @@ import net.minecraft.src.*;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 
+/**
+ * The Fire Creeper entity
+ */
 public class EntityFireCreeper extends EntityCreeper implements EntityWithCustomPacket {
     private boolean determinedToExplode = false;
     private int lastActiveTime;
@@ -21,7 +24,13 @@ public class EntityFireCreeper extends EntityCreeper implements EntityWithCustom
     private final int explosionRadius = 3;
     private byte patienceCounter = 60;
 
-
+    /**
+     * Constructor
+     *
+     * @param {World} par1World - The world
+     *
+     * @return {EntityFireCreeper}
+     */
     public EntityFireCreeper(World par1World) {
         super(par1World);
         this.tasks.addTask(1, new EntityAISwimming(this));
@@ -36,6 +45,11 @@ public class EntityFireCreeper extends EntityCreeper implements EntityWithCustom
         this.targetTasks.addTask(3, new EntityAINearestAttackableTarget(this, EntityPlayer.class, 0, false));
     }
 
+    /**
+     * Applies the entity attributes (eg.: speed, follow range)
+     *
+     * @return {void}
+     */
     protected void applyEntityAttributes() {
         super.applyEntityAttributes();
         this.getEntityAttribute(SharedMonsterAttributes.movementSpeed).setAttribute(0.29);
@@ -45,10 +59,22 @@ public class EntityFireCreeper extends EntityCreeper implements EntityWithCustom
         }
     }
 
+    /**
+     * Initializes the entity
+     *
+     * @return {void}
+     */
     protected void entityInit() {
         super.entityInit();
     }
 
+    /**
+     * NBTify the entity
+     *
+     * @param {NBTTagCompound} par1NBTTagCompound - The NBT tag
+     *
+     * @return {void}
+     */
     public void writeEntityToNBT(NBTTagCompound par1NBTTagCompound) {
         super.writeEntityToNBT(par1NBTTagCompound);
 
@@ -59,6 +85,13 @@ public class EntityFireCreeper extends EntityCreeper implements EntityWithCustom
         par1NBTTagCompound.setByte("patienceCounter", this.patienceCounter);
     }
 
+    /**
+     * Parse the entity from NBT
+     *
+     * @param {NBTTagCompound} par1NBTTagCompound - The NBT tag
+     *
+     * @return {void}
+     */
     public void readEntityFromNBT(NBTTagCompound par1NBTTagCompound) {
         super.readEntityFromNBT(par1NBTTagCompound);
         if (par1NBTTagCompound.hasKey("Fuse")) {
@@ -74,6 +107,12 @@ public class EntityFireCreeper extends EntityCreeper implements EntityWithCustom
         }
 
     }
+
+    /**
+     * Entity behaviour
+     *
+     * @return {void}
+     */
     public void onUpdate() {
         if (this.isEntityAlive()) {
             this.lastActiveTime = this.timeSinceIgnited;
@@ -132,9 +171,15 @@ public class EntityFireCreeper extends EntityCreeper implements EntityWithCustom
                 }
             }
         }
+
         super.onUpdate();
     }
 
+    /**
+     * Get the entity's custom spawn packet
+     *
+     * @return {Packet}
+     */
     @Override
     public Packet getSpawnPacketForThisEntity() {
         ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
@@ -153,8 +198,16 @@ public class EntityFireCreeper extends EntityCreeper implements EntityWithCustom
 
     }
 
+    /**
+     * Handle death, special drops
+     *
+     * @param {DamageSource} par1DamageSource - The damage source
+     *
+     * @return {void}
+     */
     public void onDeath(DamageSource par1DamageSource) {
         super.onDeath(par1DamageSource);
+
         if (par1DamageSource.getEntity() instanceof EntitySkeleton && this.getNeuteredState() == 0) {
             int var2 = Item.record13.itemID + this.rand.nextInt(Item.recordWait.itemID - Item.record13.itemID + 1);
             this.dropItem(var2, 1);
@@ -162,10 +215,25 @@ public class EntityFireCreeper extends EntityCreeper implements EntityWithCustom
 
     }
 
+    /**
+     * Creeper flash intensity
+     *
+     * @param {float} par1 - Multiplier
+     *
+     * @return {float} - The creeper flash intensity
+     */
     public float getCreeperFlashIntensity(float par1) {
         return ((float)this.lastActiveTime + (float)(this.timeSinceIgnited - this.lastActiveTime) * par1) / (float)(this.fuseTime - 2);
     }
 
+    /**
+     * Nerf damage taken from explosions
+     *
+     * @param {DamageSource} par1DamageSource - The damage source
+     * @param {float} par2 - The damage
+     *
+     * @return {boolean} - TODO: ???
+     */
     public boolean attackEntityFrom(DamageSource par1DamageSource, float par2) {
         if (par1DamageSource.isExplosion()) {
             par2 /= 2.0F;
@@ -174,6 +242,14 @@ public class EntityFireCreeper extends EntityCreeper implements EntityWithCustom
         return super.attackEntityFrom(par1DamageSource, par2);
     }
 
+    /**
+     * Drop items on death
+     *
+     * @param {boolean} bKilledByPlayer - Whether killed by player
+     * @param {int} iLootingModifier - The looting modifier
+     *
+     * @return {void}
+     */
     protected void dropFewItems(boolean bKilledByPlayer, int iLootingModifier) {
         super.dropFewItems(bKilledByPlayer, iLootingModifier);
         if (this.getNeuteredState() == 0 && (this.rand.nextInt(3) == 0 || this.rand.nextInt(1 + iLootingModifier) > 0)) {
@@ -203,6 +279,13 @@ public class EntityFireCreeper extends EntityCreeper implements EntityWithCustom
         }
     }
 
+    /**
+     * Shearing the creeper
+     *
+     * @param {EntityPlayer} player - The player
+     *
+     * @return {boolean} - TODO: ???
+     */
     public boolean interact(EntityPlayer player) {
         ItemStack playersCurrentItem = player.inventory.getCurrentItem();
         if (playersCurrentItem != null && playersCurrentItem.getItem() instanceof ItemShears) {
@@ -219,6 +302,11 @@ public class EntityFireCreeper extends EntityCreeper implements EntityWithCustom
         return false;
     }
 
+    /**
+     * Change sound if sheared
+     *
+     * @return {void}
+     */
     public void playLivingSound() {
         if (this.getNeuteredState() > 0) {
             String var1 = this.getLivingSound();
@@ -231,14 +319,31 @@ public class EntityFireCreeper extends EntityCreeper implements EntityWithCustom
 
     }
 
+    /**
+     * Get the living sound, based on neutered state
+     *
+     * @return {String} - The living sound
+     */
     protected String getLivingSound() {
         return this.getNeuteredState() > 0 ? "mob.creeper.say" : super.getLivingSound();
     }
 
+    /**
+     * Explode if kicked by an animal
+     *
+     * @param {KickingAnimal} kickingAnimal - The kicking animal
+     *
+     * @return {void}
+     */
     public void onKickedByAnimal(KickingAnimal kickingAnimal) {
         this.determinedToExplode = true;
     }
 
+    /**
+     * Roll the dice for a scroll drop
+     *
+     * @return {void}
+     */
     public void checkForScrollDrop() {
         if (this.rand.nextInt(200) == 0) {
             ItemStack itemstack = new ItemStack(BTWItems.arcaneScroll, 1, Enchantment.blastProtection.effectId);
@@ -246,27 +351,58 @@ public class EntityFireCreeper extends EntityCreeper implements EntityWithCustom
         }
     }
 
+    /**
+     * determinedToExplode getter
+     *
+     * @return {boolean} - Whether the creeper is determined to explode
+     */
     public boolean getIsDeterminedToExplode() {
         return this.determinedToExplode;
     }
 
-
+    /**
+     * trackerViewDistance getter
+     *
+     * @return {int} - The tracker view distance
+     */
     public int getTrackerViewDistance() {
         return 80;
     }
 
+    /**
+     * trackerUpdateFrequency getter
+     *
+     * @return {int} - The tracker update frequency
+     */
     public int getTrackerUpdateFrequency() {
         return 3;
     }
 
+    /**
+     * getTrackMotion getter
+     *
+     * @return {boolean} - Whether to track motion
+     */
     public boolean getTrackMotion() {
         return true;
     }
 
+    /**
+     * shouldServerTreatAsOversized getter
+     *
+     * @return {boolean} - Whether the server should treat as oversized
+     */
     public boolean shouldServerTreatAsOversized() {
         return false;
     }
 
+    /**
+     * timeSinceIgnited setter
+     *
+     * @param {int} timeSinceIgnited - The time since ignited
+     *
+     * @return {void}
+     */
     public void setTimeSinceIgnited(int timeSinceIgnited) {
         this.timeSinceIgnited = timeSinceIgnited;
     }

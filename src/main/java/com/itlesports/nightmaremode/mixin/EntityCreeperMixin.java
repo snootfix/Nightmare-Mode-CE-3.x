@@ -12,18 +12,29 @@ import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+/**
+ * NM Creeper entity manager
+ */
 @Mixin(EntityCreeper.class)
 public abstract class EntityCreeperMixin extends EntityMob implements EntityCreeperAccessor{
-
+    /**
+     * Constructor
+     *
+     * @param {World} par1World - The world
+     *
+     * @return {EntityCreeperMixin}
+     */
     public EntityCreeperMixin(World par1World) {
         super(par1World);
     }
 
-    @ModifyArg(method = "checkForScrollDrop", at = @At(value = "INVOKE", target = "Ljava/util/Random;nextInt(I)I"))
-    private int reduceScrollDrops(int bound){
-        return 250;
-    }
-
+    /**
+     * Set health scaling, move speed
+     *
+     * @param {CallbackInfo} ci - Main method callback info
+     *
+     * @return {void}
+     */
     @Inject(method = "applyEntityAttributes", at = @At("TAIL"))
     private void chanceToSpawnWithSpeed(CallbackInfo ci){
         int progress = NightmareUtils.getWorldProgress(this.worldObj);
@@ -33,26 +44,19 @@ public abstract class EntityCreeperMixin extends EntityMob implements EntityCree
         if (this.rand.nextInt(8 - progress * 2) == 0 && isHostile) {
             this.addPotionEffect(new PotionEffect(Potion.moveSpeed.id, 10000000,0));
         }
+
         this.getEntityAttribute(SharedMonsterAttributes.maxHealth).setAttribute((20 + progress * 6) * bloodMoonModifier);
         // 20 -> 26 -> 32 -> 38
         this.getEntityAttribute(SharedMonsterAttributes.movementSpeed).setAttribute(0.28);
     }
 
-    @Inject(method = "dropFewItems", at = @At("TAIL"))
-    private void allowBloodOrbDrops(boolean bKilledByPlayer, int iLootingModifier, CallbackInfo ci){
-        int bloodOrbID = NightmareUtils.getIsBloodMoon() ? NMItems.bloodOrb.itemID : 0;
-        if (bloodOrbID > 0) {
-            int var4 = this.rand.nextInt(3);
-            // 0 - 2
-            if (iLootingModifier > 0) {
-                var4 += this.rand.nextInt(iLootingModifier + 1);
-            }
-            for (int var5 = 0; var5 < var4; ++var5) {
-                this.dropItem(bloodOrbID, 1);
-            }
-        }
-    }
-
+    /**
+     * Increase creeper breach range
+     *
+     * @param {double} constant - The constant
+     *
+     * @return {double} - The new constant
+     */
     @ModifyConstant(method = "onUpdate", constant = @Constant(doubleValue = 36.0))
     private double increaseCreeperBreachRange(double constant){
         boolean isHostile = this.worldObj.getDifficulty() == Difficulties.HOSTILE;
@@ -68,6 +72,35 @@ public abstract class EntityCreeperMixin extends EntityMob implements EntityCree
             };
         }
         return constant;
+    }
+
+    /**
+     * Override arcane scroll drop rate
+     *
+     * @param {int} bound - The bound
+     *
+     * @return {int} - The new bound
+     */
+    @ModifyArg(method = "checkForScrollDrop", at = @At(value = "INVOKE", target = "Ljava/util/Random;nextInt(I)I"))
+    private int reduceScrollDrops(int bound){
+        return 250;
+    }
+
+    //TODO: annonate the rest
+
+    @Inject(method = "dropFewItems", at = @At("TAIL"))
+    private void allowBloodOrbDrops(boolean bKilledByPlayer, int iLootingModifier, CallbackInfo ci){
+        int bloodOrbID = NightmareUtils.getIsBloodMoon() ? NMItems.bloodOrb.itemID : 0;
+        if (bloodOrbID > 0) {
+            int var4 = this.rand.nextInt(3);
+            // 0 - 2
+            if (iLootingModifier > 0) {
+                var4 += this.rand.nextInt(iLootingModifier + 1);
+            }
+            for (int var5 = 0; var5 < var4; ++var5) {
+                this.dropItem(bloodOrbID, 1);
+            }
+        }
     }
 
     @Inject(method = "dropFewItems", at = @At("HEAD"))

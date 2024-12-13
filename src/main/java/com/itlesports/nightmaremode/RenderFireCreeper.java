@@ -6,31 +6,76 @@ import net.fabricmc.api.Environment;
 import net.minecraft.src.*;
 import org.lwjgl.opengl.GL11;
 
+/**
+ * Fire Creeper renderer
+ */
 public class RenderFireCreeper extends RenderCreeper {
-
     private final ModelBase creeperModel = new ModelCreeper(2.0f);
     private static final ResourceLocation armoredCreeperTextures = new ResourceLocation("textures/entity/creeper/creeper_armor.png");
     public static final ResourceLocation FIRE_CREEPER_TEXTURE = new ResourceLocation("textures/entity/firecreeper.png");
 
+    /**
+     * Constructor
+     *
+     * @return {RenderFireCreeper}
+     */
     public RenderFireCreeper() {
         super();
     }
+
+    /**
+     * Overrides the creeper texture if it's a fire creeper
+     *
+     * @param {EntityCreeper} par1EntityCreeper - The creeper entity
+     *
+     * @return {ResourceLocation} - The texture
+     */
     @Override
     protected ResourceLocation getCreeperTextures(EntityCreeper par1EntityCreeper) {
         if (par1EntityCreeper instanceof EntityFireCreeper) {
             return FIRE_CREEPER_TEXTURE;
-        } else {return super.getEntityTexture(par1EntityCreeper);}
+        }
+
+        return super.getEntityTexture(par1EntityCreeper);
     }
+
+    /**
+     * Overrides the entity texture if it's a fire creeper
+     *
+     * @param {Entity} par1Entity - The entity
+     */
     @Override
     protected ResourceLocation getEntityTexture(Entity par1Entity) {
-        if(par1Entity instanceof EntityFireCreeper) {
+        if (par1Entity instanceof EntityFireCreeper) {
             return FIRE_CREEPER_TEXTURE;
-        } else {
-            return super.getEntityTexture(par1Entity);
         }
+
+        return super.getEntityTexture(par1Entity);
     }
 
+    /**
+     * Overrides the render pass for the fire creeper
+     *
+     * @param {EntityLivingBase} par1EntityLivingBase - The entity
+     * @param {int} par2 - TODO: ???
+     * @param {float} par3 - TODO: ???
+     *
+     * @return {int} - The render pass
+     */
+    @Override
+    protected int shouldRenderPass(EntityLivingBase par1EntityLivingBase, int par2, float par3) {
+        return this.renderCreeperPassModel((EntityFireCreeper)par1EntityLivingBase, par2, par3);
+    }
 
+    /**
+     * Creates the render pass for the fire creeper
+     *
+     * @param {EntityFireCreeper} par1EntityCreeper - The fire creeper entity
+     * @param {int} par2 - TODO: ???
+     * @param {float} par3 - TODO: ???
+     *
+     * @return {int} - The render pass
+     */
     protected int renderCreeperPassModel(EntityFireCreeper par1EntityCreeper, int par2, float par3) {
         if (par1EntityCreeper.getPowered()) {
             if (par1EntityCreeper.isInvisible()) {
@@ -63,10 +108,7 @@ public class RenderFireCreeper extends RenderCreeper {
                 GL11.glDisable(3042);
             }
         }
+
         return -1;
-    }
-    @Override
-    protected int shouldRenderPass(EntityLivingBase par1EntityLivingBase, int par2, float par3) {
-        return this.renderCreeperPassModel((EntityFireCreeper)par1EntityLivingBase, par2, par3);
     }
 }
